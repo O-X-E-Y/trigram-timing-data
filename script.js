@@ -39,7 +39,7 @@ document.addEventListener("keydown", event => {
         last_save = current_time;
 
         let last_data = JSON.parse(localStorage.getItem("trigram_data"));
-        let current_data = structuredClone(trigram_data);
+        let current_data = convert_data();
 
         for(let t of current_data.keys()) {
             last_data[t] = add_datapoint(current_data.get(t), last_data[t]);
@@ -66,6 +66,10 @@ function add_datapoint(current, last) {
     } else {
         return current.concat(last)
     }
+}
+
+function convert_data() {
+    return structuredClone(trigram_data);
 }
 
 function get_trigram_data() {

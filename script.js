@@ -82,6 +82,6 @@ function get_trigram_data() {
     console.log(s);
 }
 
-function reset_data() {
+function reset_trigram_data() {
     localStorage.setItem("trigram_data", "{}");
 }

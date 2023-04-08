@@ -49,7 +49,7 @@ impl TrigramData {
             .filter(|(poss, _)| {
                 poss.into_iter().all(|p| match p.row {
                     1 | 2 => p.col > 0 && p.col <= 10,
-                    3 => p.col > 1 && p.col <= 11,
+                    3 => p.col <= 12,
                     // 4 => p.col == 0 || p.col == 1,
                     _ => false,
                 })
@@ -59,14 +59,16 @@ impl TrigramData {
                     .into_iter()
                     .map(|Pos { row, col }| {
                         let Pos { row, col } = match row {
-                            0 | 1 | 2 | 3 => Pos {
+                            1 | 2 => Pos {
                                 row: row - 1,
                                 col: col - 1,
                             },
-                            4 => Pos {
-                                row: row - 1,
-                                col: col,
-                            },
+                            3 => match col {
+                                0 | 1 => Pos { row: 0, col: 2 },
+                                n @ (2..=11) => Pos { row: n - 2, col: 2 },
+                                12 => Pos { row: 9, col: 2 },
+                                _ => unreachable!()
+                            }
                             _ => unreachable!(),
                         };
                         row * 10 + col
@@ -107,7 +109,7 @@ impl Avg {
 
 impl std::fmt::Display for Avg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "mean: {}, sd: {}, n: {}", self.mean, self.sd, self.pop)
+        write!(f, "mean: {}  sd: {:>2}  n: {:<4}  wpm: {}", self.mean, self.sd, self.pop, 60000/self.mean*2/5)
     }
 }
 

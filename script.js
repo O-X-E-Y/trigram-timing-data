@@ -38,21 +38,29 @@ document.addEventListener("keydown", event => {
     if (current_time - last_save > save_cooldown && event.code == "Tab") {
         last_save = current_time;
 
-        let last_data = JSON.parse(localStorage.getItem("trigram_data"));
-        let current_data = convert_data();
-
-        for(let t of current_data.keys()) {
-            last_data[t] = add_datapoint(current_data.get(t), last_data[t]);
-        }
-
-        let s = JSON.stringify(last_data);
-        localStorage.setItem("trigram_data", s);
+        combine_data();
 
         console.log("saved data in localStorage under key \"trigram_data\"");
     } else if (event.code === "Tab") {
         console.log(`didn't save because it's only been ${current_time - last_save} ms since last save.`);
     }
 });
+
+function combine_data() {
+    let last_data = JSON.parse(localStorage.getItem("trigram_data"));
+    let current_data = convert_data();
+
+    for(let t of current_data.keys()) {
+        last_data[t] = add_datapoint(current_data.get(t), last_data[t]);
+    }
+
+    let s = JSON.stringify(last_data);
+    localStorage.setItem("trigram_data", s);
+
+    trigram_data.clear()
+
+    return last_data
+}
 
 function add_datapoint(current, last) {
     if (current === undefined || current === null) {
@@ -73,8 +81,8 @@ function convert_data() {
 }
 
 function get_trigram_data() {
-    let trigrams_to_save = convert_data();
-    let obj = Object.fromEntries(trigrams_to_save);
+    let obj = combine_data();
+    // let obj = Object.fromEntries(trigrams_to_save);
     let s = JSON.stringify(obj, null, '\t');
 
     let re1 = new RegExp("[\\n\\s]+([\\d\\.]+,?)(\\n\\t)?", "g");

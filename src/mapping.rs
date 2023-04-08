@@ -11,6 +11,7 @@ impl FromStr for Pos {
 
     fn from_str(key: &str) -> Result<Self, Self::Err> {
         match key {
+            "Escape" => Ok(Pos { row: 9, col: 0 }),
             "Backquote" => Ok(Pos { row: 0, col: 0 }),
             "Digit1" => Ok(Pos { row: 0, col: 1 }),
             "Digit2" => Ok(Pos { row: 0, col: 2 }),
@@ -65,9 +66,13 @@ impl FromStr for Pos {
             "Period" => Ok(Pos { row: 3, col: 10 }),
             "Slash" => Ok(Pos { row: 3, col: 11 }),
             "ShiftRight" => Ok(Pos { row: 3, col: 12 }),
-            "Space" => Ok(Pos { row: 4, col: 0 }),
-            "ControlRight" => Ok(Pos { row: 4, col: 2 }),
-            "ControlLeft" => Ok(Pos { row: 4, col: 999 }),
+            "ControlLeft" => Ok(Pos { row: 4, col: 0 }),
+            "OSLeft" => Ok(Pos { row: 4, col: 1 }),
+            "AltLeft" => Ok(Pos { row: 4, col: 2 }),
+            "Space" => Ok(Pos { row: 4, col: 3 }),
+            "AltRight" => Ok(Pos { row: 4, col: 4 }),
+            "ContextMenu" => Ok(Pos { row: 4, col: 5 }),
+            "ControlRight" => Ok(Pos { row: 4, col: 6 }),
             _ => Err(format!("invalid key: {}", key)),
         }
     }
@@ -76,6 +81,7 @@ impl FromStr for Pos {
 impl Display for Pos {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Pos { row: 9, col: 0 } => write!(f, "Escape"),
             Pos { row: 0, col: 0 } => write!(f, "Backquote"),
             Pos { row: 0, col: 1 } => write!(f, "Digit1"),
             Pos { row: 0, col: 2 } => write!(f, "Digit2"),
@@ -130,8 +136,13 @@ impl Display for Pos {
             Pos { row: 3, col: 10 } => write!(f, "Period"),
             Pos { row: 3, col: 11 } => write!(f, "Slash"),
             Pos { row: 3, col: 12 } => write!(f, "ShiftRight"),
-            Pos { row: 4, col: 0 } => write!(f, "Space"),
-            Pos { row: 4, col: 999 } => write!(f, "ControlLeft"),
+            Pos { row: 4, col: 0 } => write!(f, "ControlLeft"),
+            Pos { row: 4, col: 1 } => write!(f, "OSLeft"),
+            Pos { row: 4, col: 2 } => write!(f, "AltLeft"),
+            Pos { row: 4, col: 3 } => write!(f, "Space"),
+            Pos { row: 4, col: 4 } => write!(f, "AltRight"),
+            Pos { row: 4, col: 5 } => write!(f, "ContextMenu"),
+            Pos { row: 4, col: 6 } => write!(f, "ControlRight"),
             _ => unreachable!("Invalid keyboard position: {self:?}"),
         }
     }

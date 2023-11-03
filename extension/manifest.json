@@ -1,0 +1,24 @@
+{
+    "manifest_version": 2,
+    "name": "Monkeytype trigram data",
+    "description": "Generates trigram timing data off monkeytype",
+    "version": "0.0.1",
+    "icons": {
+      "32": "icons/mt-32.png"
+    },
+    "permissions": ["tabs", "activeTab", "contextMenus", "devtools", "clipboardWrite"],
+    "background": {
+      "scripts": ["app.js"]
+    },
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "borderify@example.com"
+      }
+    },
+    "content_scripts": [],
+    "browser_action": {
+      "default_icon": {
+        "32": "icons/mt-32.png"
+      }
+    }
+  }

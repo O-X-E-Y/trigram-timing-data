@@ -1,14 +1,14 @@
 mod mapping;
 mod trigram_patterns;
+mod with_dof;
 
 use mapping::*;
-use trigram_patterns::{Finger, TRIGRAM_COMBINATIONS};
-
-use serde_json::from_str;
+use trigram_patterns::TRIGRAM_COMBINATIONS;
 
 use std::{collections::HashMap, fs::File, io::Read, path::Path};
 
 use serde::{Deserialize, Serialize};
+use serde_json;
 use serde_with::{serde_as, serde_conv};
 
 serde_conv!(
@@ -26,7 +26,7 @@ serde_conv!(
 );
 
 #[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct TrigramData(#[serde_as(as = "HashMap<TrigramAsPos, _>")] HashMap<[Pos; 3], Vec<u16>>);
 
 #[derive(Clone, Debug)]
@@ -39,7 +39,41 @@ impl TrigramData {
         let mut buf = String::with_capacity(f.metadata().unwrap().len() as usize);
         f.read_to_string(&mut buf).map_err(|e| e.to_string())?;
 
-        from_str(&buf).map_err(|e| e.to_string())
+        serde_json::from_str(&buf).map_err(|e| e.to_string())
+    }
+
+    pub fn load_multiple<P: AsRef<Path>>(paths: &[P]) -> Result<Self, String> {
+        let datas = paths
+            .into_iter()
+            .map(|p| TrigramData::load(p).map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, String>>()?;
+
+        let data = datas
+            .into_iter()
+            .reduce(|acc, d| acc.combine(d))
+            .unwrap_or_default();
+
+        Ok(data)
+    }
+
+    pub fn combine(self, other: Self) -> Self {
+        let mut res = Self::default();
+
+        for (trigram, mut freqs) in self.0 {
+            res.0
+                .entry(trigram)
+                .and_modify(|f| f.append(&mut freqs))
+                .or_insert(freqs);
+        }
+
+        for (trigram, mut freqs) in other.0 {
+            res.0
+                .entry(trigram)
+                .and_modify(|f| f.append(&mut freqs))
+                .or_insert(freqs);
+        }
+
+        res
     }
 
     pub fn matrix_3x10(self) -> MatrixData {
@@ -67,8 +101,8 @@ impl TrigramData {
                                 0 | 1 => Pos { row: 0, col: 2 },
                                 n @ (2..=11) => Pos { row: n - 2, col: 2 },
                                 12 => Pos { row: 9, col: 2 },
-                                _ => unreachable!()
-                            }
+                                _ => unreachable!(),
+                            },
                             _ => unreachable!(),
                         };
                         row * 10 + col
@@ -87,29 +121,44 @@ impl TrigramData {
 pub struct Avg {
     mean: u16,
     sd: u16,
-    pop: usize
+    pop: usize,
 }
 
 impl Avg {
     pub fn new(data: Vec<u16>) -> Self {
         if data.len() == 0 {
-            return Self { mean: 0, sd: 0, pop: 0 }
+            return Self {
+                mean: 0,
+                sd: 0,
+                pop: 0,
+            };
         }
 
         let mean = data.iter().map(|v| *v as f64).sum::<f64>() / data.len() as f64;
         let sd_mean_corr_sum = data.iter().map(|v| (*v as f64 - mean).powi(2)).sum::<f64>();
-        let sd = (sd_mean_corr_sum / ( (data.len() - 1) as f64)).sqrt();
+        let sd = (sd_mean_corr_sum / ((data.len() - 1) as f64)).sqrt();
 
         let mean = mean as u16;
         let sd = sd as u16;
 
-        Self { mean, sd, pop: data.len() }
+        Self {
+            mean,
+            sd,
+            pop: data.len(),
+        }
     }
 }
 
 impl std::fmt::Display for Avg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "mean: {}  sd: {:>2}  n: {:<4}  wpm: {}", self.mean, self.sd, self.pop, 60000/self.mean*2/5)
+        write!(
+            f,
+            "mean: {}  sd: {:>2}  n: {:<4}  wpm: {}",
+            self.mean,
+            self.sd,
+            self.pop,
+            60000 / self.mean * 2 / 5
+        )
     }
 }
 
@@ -152,8 +201,8 @@ impl From<TrigramStatsInter> for TrigramStats {
             sfb: Avg::new(stats.sfb),
             bad_sfb: Avg::new(stats.bad_sfb),
             sft: Avg::new(stats.sft),
-            other: Avg::new(stats.other),
-            invalid: Avg::new(stats.invalid),
+            _other: Avg::new(stats.other),
+            _invalid: Avg::new(stats.invalid),
         }
     }
 }
@@ -175,13 +224,14 @@ pub struct TrigramStats {
     redirect_sfs: Avg,
     bad_redirect: Avg,
     bad_redirect_sfs: Avg,
-    other: Avg,
-    invalid: Avg,
+    _other: Avg,
+    _invalid: Avg,
 }
 
 impl std::fmt::Display for TrigramStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,
+        write!(
+            f,
             concat!(
                 "Overall:        {}\n\n",
                 "Sfb:            {}\n",
@@ -244,7 +294,8 @@ fn finger(index: usize) -> usize {
 }
 
 fn fingers<const N: usize>(indexes: &[usize; N]) -> [usize; N] {
-    indexes.into_iter()
+    indexes
+        .into_iter()
         .map(|f| finger(*f))
         .collect::<Vec<_>>()
         .try_into()
@@ -264,7 +315,6 @@ impl MatrixData {
         let mut inter = TrigramStatsInter::default();
 
         for (indexes, vals) in self.0.iter() {
-
             if indexes_are_sfr(&indexes) {
                 inter.sfr.extend(vals);
                 inter.overall.extend(vals);
@@ -280,25 +330,24 @@ impl MatrixData {
             inter.overall.extend(vals);
 
             let combination = (a << 6) | (b << 3) | c;
-		    let pattern = TRIGRAM_COMBINATIONS[combination];
+            let pattern = TRIGRAM_COMBINATIONS[combination];
 
-            use trigram_patterns::TrigramPattern::*;
+            use trigram_patterns::TrigramPattern as T;
 
             match pattern {
-                Alternate => inter.alternate.extend(vals),
-                AlternateSfs => inter.alternate_sfs.extend(vals),
-                Inroll => inter.inroll.extend(vals),
-                Outroll => inter.outroll.extend(vals),
-                Onehand => inter.onehand.extend(vals),
-                Redirect => inter.redirect.extend(vals),
-                RedirectSfs => inter.redirect_sfs.extend(vals),
-                BadRedirect => inter.bad_redirect.extend(vals),
-                BadRedirectSfs => inter.bad_redirect_sfs.extend(vals),
-                Sfb => inter.sfb.extend(vals),
-                BadSfb => inter.bad_sfb.extend(vals),
-                Sft => inter.sft.extend(vals),
-                Other => inter.other.extend(vals),
-                Invalid => inter.invalid.extend(vals),
+                T::Alternate => inter.alternate.extend(vals),
+                T::AlternateSfs => inter.alternate_sfs.extend(vals),
+                T::Inroll => inter.inroll.extend(vals),
+                T::Outroll => inter.outroll.extend(vals),
+                T::Onehand => inter.onehand.extend(vals),
+                T::Redirect => inter.redirect.extend(vals),
+                T::RedirectSfs => inter.redirect_sfs.extend(vals),
+                T::BadRedirect => inter.bad_redirect.extend(vals),
+                T::BadRedirectSfs => inter.bad_redirect_sfs.extend(vals),
+                T::Sfb => inter.sfb.extend(vals),
+                T::BadSfb => inter.bad_sfb.extend(vals),
+                T::Sft => inter.sft.extend(vals),
+                T::Other => inter.other.extend(vals),
             }
         }
 
@@ -307,9 +356,9 @@ impl MatrixData {
 }
 
 fn main() {
-    let path = std::env::args().skip(1).take(1).next().unwrap();
+    let paths = std::env::args().skip(1).collect::<Vec<_>>();
 
-    let data = TrigramData::load(&path).unwrap().matrix_3x10();
+    let data = TrigramData::load_multiple(&paths).unwrap().matrix_3x10();
 
     println!("{}", data.stats());
 }

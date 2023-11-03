@@ -2,8 +2,8 @@ use std::{fmt::Display, str::FromStr};
 
 #[derive(Copy, Clone, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Pos {
-    pub(crate) row: usize,
-    pub(crate) col: usize,
+    pub row: usize,
+    pub col: usize,
 }
 
 impl FromStr for Pos {

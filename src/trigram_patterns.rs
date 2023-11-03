@@ -13,7 +13,6 @@ pub enum TrigramPattern {
     BadSfb,
     Sft,
     Other,
-    Invalid,
 }
 
 #[repr(u8)]

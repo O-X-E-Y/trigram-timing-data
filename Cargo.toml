@@ -3,9 +3,8 @@ name = "trigram-timing-data"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+libdof = "0.6.0"
 serde = { version = "1.0.159", features = ["derive"] }
 serde_json = "1.0.95"
 serde_with = { version = "2.3.1", features = ["json"] }
